@@ -157,3 +157,27 @@ k_vecinos = np.arange(3,11,1)
 exactitudes = dataExactitudes(n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test)
 
 fig, ax = plt.subplots()
+
+
+# Crear el bubble chart
+plt.figure(figsize=(13, 8))
+scatter = plt.scatter(
+    exactitudes['num_vecinos'],
+    exactitudes['num_atributos'],
+    s=exactitudes['exactitud'] * 1000,  # Tamaño de las burbujas
+    c=exactitudes['exactitud'],           # Color basado en la exactitud
+    cmap='viridis',              # Mapa de colores
+    alpha=0.6,
+    edgecolors='w'
+)
+
+# Añadir una barra de color
+plt.colorbar(scatter, label='Exactitud')
+
+# Etiquetas y título
+plt.title('Bubble Chart de Vecinos vs Atributos')
+plt.xlabel('Cantidad de Vecinos')
+plt.ylabel('Cantidad de Atributos')
+plt.grid(True)
+plt.show()
+
