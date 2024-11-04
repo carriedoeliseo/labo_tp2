@@ -6,6 +6,7 @@
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 #%% ===========================================================================
@@ -110,7 +111,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle
 
 #%% c) ========================================================================
 
-def exactitud_0y1 (n_atributos, X_train, X_test, Y_train, Y_test):
+def exactitud_0y1_por_atributos (n_atributos, X_train, X_test, Y_train, Y_test):
     exactitudes = []
     for N in n_atributos:
         
@@ -126,7 +127,33 @@ def exactitud_0y1 (n_atributos, X_train, X_test, Y_train, Y_test):
     ax.plot(iteraciones,exactitudes)
 
 n_atributos = [3]*10
-exactitud_0y1 (n_atributos, X_train, X_test, Y_train, Y_test)
+exactitud_0y1_por_atributos (n_atributos, X_train, X_test, Y_train, Y_test)
 
 n_atributos = np.arange(3,20,1)
-exactitud_0y1 (n_atributos, X_train, X_test, Y_train, Y_test)
+exactitud_0y1_por_atributos (n_atributos, X_train, X_test, Y_train, Y_test)
+
+#%% d) ========================================================================
+
+def dataExactitudes (n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test):
+    
+    exactitudes = pd.DataFrame(columns=[['num_atributos', 'num_vecinos', 'exactitud']])
+    
+    for N in n_atributos:
+        for k in k_vecinos:
+            
+            modelo_0y1 = KNeighborsClassifier(n_neighbors=k)
+            atributos = X_train.sample(n=N, axis=1).columns
+            modelo_0y1.fit(X_train[atributos], Y_train)
+
+            Y_pred = modelo_0y1.predict(X_test[atributos])
+            exactitud = round(metrics.accuracy_score(Y_test, Y_pred), 2)
+            
+            exactitudes.loc[len(exactitudes)] = [N, k, exactitud]
+            
+    return exactitudes
+
+n_atributos = np.arange(3,16,1)
+k_vecinos = np.arange(3,11,1)
+exactitudes = dataExactitudes(n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test)
+
+fig, ax = plt.subplots()
