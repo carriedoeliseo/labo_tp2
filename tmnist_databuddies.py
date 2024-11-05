@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 # -*- coding: utf-8 -*-
 """
@@ -9,7 +8,7 @@
 ########################### GRUPO E INTEGRANTES ###############################
 
 # Data Buddies:
-#    -Eliseo Carriedo  (L.U.: /)
+#    -Eliseo Carriedo  (L.U.: 392/23)
 #    -Lila Fage (L.U.: 235/24)
 #    -Julian Laurido (L.U.: / )
 
@@ -25,15 +24,15 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from inline_sql import sql
+from sklearn import metrics
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
-from sklearn import metrics
-from inline_sql import sql
-import random
 
 #%% ===========================================================================
 ########################### CARGA DE DATOS ####################################
-carpeta = '~/Desktop/workspace/guias-labdatos/archivosCSV/'
+carpeta = './'
 data = pd.read_csv(carpeta+'TMNIST_Data.csv')
 
 #%% ANALISIS EXPLORATORIO =====================================================
@@ -80,8 +79,6 @@ def plot_std_1y3_3y8 (data_1y3, data_3y8):
 # Variabilidad de intensidad entre 1 y 3 y entre 3 y 8
 plot_std_1y3_3y8(data_1y3, data_3y8)
 
-del (data_1y3, data_3y8)
-
 #%% c) ========================================================================
                        
 def plot_clase_0 (data):
@@ -102,13 +99,12 @@ La exploración se complica debido a la necesidad de herramientas de
 visualizacion.
 """
 
+#%% Borrado ===================================================================
+
+del (data_1y3, data_3y8)
+
 #%% Clasificación binaria =====================================================
 #&& a) ========================================================================
-
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
-from inline_sql import sql
 
 data_0y1 = data[(data['labels'] == 0) | (data['labels'] == 1)].iloc[:,1:].reset_index(drop=True)
 
@@ -157,7 +153,7 @@ exactitud_0y1_por_atributos (n_atributos, X_train, X_test, Y_train, Y_test)
 
 def dataExactitudes (n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test):
     
-    exactitudes = pd.DataFrame(columns=['num_atributos', 'num_vecinos', 'exactitud'])
+    exactitudes = pd.DataFrame(columns=['num_atributos', 'num_vecinos', 'exactitud', 'precision_0', 'recall_0', 'precision_1', 'recall_1'])
     
     for N in n_atributos:
         for k in k_vecinos:
@@ -167,78 +163,78 @@ def dataExactitudes (n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test):
             modelo_0y1.fit(X_train[atributos], Y_train)
 
             Y_pred = modelo_0y1.predict(X_test[atributos])
-            exactitud = round(metrics.accuracy_score(Y_test, Y_pred), 2)
             
+            exactitud = round(metrics.accuracy_score(Y_test, Y_pred), 2)
             exactitudes.loc[len(exactitudes)] = [N, k, exactitud]
             
     return exactitudes
 
 def exactitudes_plot (X_train, X_test, Y_train, Y_test):
+    
     n_atributos = np.arange(3,16,1)
     k_vecinos = np.arange(3,11,1)
     exactitudes = dataExactitudes(n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test)
     
-    fig, ax = plt.subplots()
-    
-    
-    # Crear el bubble chart
-    plt.figure(figsize=(13, 8))
-    scatter = plt.scatter(
-        exactitudes['num_vecinos'],
-        exactitudes['num_atributos'],
-        s=exactitudes['exactitud'] * 1000,  # Tamaño de las burbujas
-        c=exactitudes['exactitud'],           # Color basado en la exactitud
-        cmap='viridis',              # Mapa de colores
-        alpha=0.6,
-        edgecolors='w'
-    )
-    
-    # Añadir una barra de color
-    plt.colorbar(scatter, label='Exactitud')
-    
-    # Etiquetas y título
-    plt.title('Bubble Chart de Vecinos vs Atributos')
-    plt.xlabel('Cantidad de Vecinos')
-    plt.ylabel('Cantidad de Atributos')
-    plt.grid(True)
-    plt.show()
+    fig, ax = plt.subplots(figsize=(13, 8))
+    scatter = ax.scatter(exactitudes['num_vecinos'],
+                         exactitudes['num_atributos'],
+                         s=exactitudes['exactitud']*1000,
+                         c=exactitudes['exactitud'],
+                         cmap='viridis',
+                         alpha=0.6,
+                         edgecolors='w')
+    fig.colorbar(scatter, label='Exactitud')
+    ax.set_title('Bubble Chart de Vecinos vs Atributos')
+    ax.set_label('Cantidad de Vecinos')
+    ax.set_label('Cantidad de Atributos')
+    ax.grid(True)
     
 exactitudes_plot(X_train, X_test, Y_train, Y_test)
-#%% INSTANCIA DE BORRADO
+
+#%% Borrado ===================================================================
+
 del (count_0y1, data_0y1, importantes_0y1, n_atributos, no_importantes_0y1, std_0y1, X, Y,X_train, X_test, Y_train, Y_test)
 
-#%% CLASIFICACION MULTICLASE ========================================================================
-# a) ========================================================================
+#%% Clasificacion Multiclase ==================================================
+#&& a) ========================================================================
+
 data_importante = data.drop(no_importantes, axis = 1)
 X = data_importante.iloc[:,2:]
 Y = data_importante.iloc[:,1]
 X_dev, X_held, Y_dev, Y_held = train_test_split(X, Y, test_size=0.1, shuffle=False)
-#%%b) ===============================================================================================
-from sklearn.tree import DecisionTreeClassifier
+
+#%% b) ========================================================================
 
 X_train, X_test, Y_train, Y_test = train_test_split(X_dev, Y_dev, test_size=0.2, shuffle=False)
 
 def exactitudes_tree(X_train, X_test, Y_train, Y_test):
+    
     exactitudes_tree = pd.DataFrame(columns=['Profundidad', 'Precision'])
+    
     for i in range(1,11):
+        
         model_tree = DecisionTreeClassifier(criterion='entropy', max_depth=i)
         model_tree.fit(X_train, Y_train)
         prediction_tree = model_tree.predict(X_test)
+        
+        #A partir de profundidad 8, la accuracy se mantiene estable alrededor de [0.92-0.93]
         exactitud = round(metrics.accuracy_score(Y_test, prediction_tree), 2)
         exactitudes_tree.loc[len(exactitudes_tree)] = [i, exactitud]
-        #A partir de profundidad 8, la accuracy se mantiene estable alrededor de [0.92-0.93]
         
     return exactitudes_tree
     
 exactitudes_tree = exactitudes_tree(X_train, X_test, Y_train, Y_test)
-#%%
 
 def plot_exactitud_tree(exactitudes_tree):
+    
     fig, ax = plt.subplots()
     ax.bar(data=exactitudes_tree, x='Profundidad', height='Precision')
-    
     ax.set_title('Grafico de barras de precisiones')
     ax.set_xlabel('Profundidades')
     ax.set_ylabel('Precision del Arbol')
     
 plot_exactitud_tree(exactitudes_tree)
+
+#%% c) ========================================================================
+
+
