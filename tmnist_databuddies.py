@@ -10,7 +10,7 @@
 # Data Buddies:
 #    -Eliseo Carriedo  (L.U.: 392/23)
 #    -Lila Fage (L.U.: 235/24)
-#    -Julian Laurido (L.U.: / )
+#    -Julian Laurido (L.U.: 1097/23 )
 
 ############################### DESCRIPCION ###################################
 
@@ -24,6 +24,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 from inline_sql import sql
 from sklearn import metrics
 from sklearn.tree import DecisionTreeClassifier
@@ -165,15 +166,23 @@ def dataExactitudes (n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test):
             Y_pred = modelo_0y1.predict(X_test[atributos])
             
             exactitud = round(metrics.accuracy_score(Y_test, Y_pred), 2)
-            exactitudes.loc[len(exactitudes)] = [N, k, exactitud]
+            confusion = metrics.confusion_matrix(Y_test, Y_pred, labels=[0, 1])
+            
+            prec0 = round((confusion[0,0])/sum(confusion[:,0]), 2)
+            reca0 = round((confusion[0,0])/sum(confusion[0,:]), 2)
+            prec1 = round((confusion[1,1])/sum(confusion[:,1]), 2)
+            reca1 = round((confusion[1,1])/sum(confusion[1,:]), 2)
+            
+            exactitudes.loc[len(exactitudes)] = [N, k, exactitud, prec0, reca0, prec1, reca1]
             
     return exactitudes
 
-def exactitudes_plot (X_train, X_test, Y_train, Y_test):
     
-    n_atributos = np.arange(3,16,1)
-    k_vecinos = np.arange(3,11,1)
-    exactitudes = dataExactitudes(n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test)
+n_atributos = np.arange(3,16,1)
+k_vecinos = np.arange(3,11,1)
+exactitudes = dataExactitudes(n_atributos, k_vecinos, X_train, X_test, Y_train, Y_test)
+
+def exactitudes_plot (exactitudes):
     
     fig, ax = plt.subplots(figsize=(13, 8))
     scatter = ax.scatter(exactitudes['num_vecinos'],
@@ -189,7 +198,7 @@ def exactitudes_plot (X_train, X_test, Y_train, Y_test):
     ax.set_label('Cantidad de Atributos')
     ax.grid(True)
     
-exactitudes_plot(X_train, X_test, Y_train, Y_test)
+exactitudes_plot(exactitudes)
 
 #%% Borrado ===================================================================
 
@@ -207,7 +216,7 @@ X_dev, X_held, Y_dev, Y_held = train_test_split(X, Y, test_size=0.1, shuffle=Fal
 
 X_train, X_test, Y_train, Y_test = train_test_split(X_dev, Y_dev, test_size=0.2, shuffle=False)
 
-def exactitudes_tree(X_train, X_test, Y_train, Y_test):
+def exactitudes_depth_tree(X_train, X_test, Y_train, Y_test):
     
     exactitudes_tree = pd.DataFrame(columns=['Profundidad', 'Precision'])
     
@@ -223,18 +232,54 @@ def exactitudes_tree(X_train, X_test, Y_train, Y_test):
         
     return exactitudes_tree
     
-exactitudes_tree = exactitudes_tree(X_train, X_test, Y_train, Y_test)
+exactitudes_depth_tree = exactitudes_depth_tree(X_train, X_test, Y_train, Y_test)
 
-def plot_exactitud_tree(exactitudes_tree):
+def exactitud_depth_tree_plot (exactitudes_tree):
     
     fig, ax = plt.subplots()
-    ax.bar(data=exactitudes_tree, x='Profundidad', height='Precision')
+    ax.plot(exactitudes_tree['Profundidad'], exactitudes_tree['Precision'])
     ax.set_title('Grafico de barras de precisiones')
     ax.set_xlabel('Profundidades')
     ax.set_ylabel('Precision del Arbol')
+    ax.set_xticks(np.arange(1,11,1))
     
-plot_exactitud_tree(exactitudes_tree)
+exactitud_depth_tree_plot(exactitudes_depth_tree)
 
 #%% c) ========================================================================
 
+def exactitudes_hiperparametros (X_train, X_test, Y_train, Y_test):
+    
+    exactitudes_tree = pd.DataFrame(columns=['Criterio', 'maxAtributos', 'Profundidad', 'minSamples','Precision'])
+    maxAtributos = np.arange(2, 15, 3)
+    profundidades = np.arange(1, 10, 2)
+    minEjemplares = np.arange(2, 10, 2)
+    
+    fig, axs = plt.subplots(ncols=3)
+    
+    exactitudes = pd.DataFrame(columns=['MaxFeatures', 'Precision'])
+    
+    for i in maxAtributos:
+        
+        model_tree = DecisionTreeClassifier(criterion='entropy', max_features=i)
+        model_tree.fit(X_train, Y_train)
+        prediction_tree = model_tree.predict(X_test)
+        
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree), 2)
+        exactitudes.loc[len(exactitudes_tree)] = [i, exactitud]
+        
+        axs[0].plot(exactitudes['MaxFeatures'], exactitudes['Precision'])
+        
+    for i in maxAtributos:
+        
+        model_tree = DecisionTreeClassifier(criterion='gini', max_features=i)
+        model_tree.fit(X_train, Y_train)
+        prediction_tree = model_tree.predict(X_test)
+        
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree), 2)
+        exactitudes.loc[len(exactitudes_tree)] = [i, exactitud]
+        
+        axs[0].plot(exactitudes['MaxFeatures'], exactitudes['Precision'])
+    
+    
+    
 
