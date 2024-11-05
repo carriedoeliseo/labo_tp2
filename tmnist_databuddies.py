@@ -1,17 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-@author: DataBuddies
-
+# -*- coding: utf-8 -*-
 """
+
+################# LABORATORIO DE DATOS: TRABAJO PRÁCTICO 2 ####################
+
+
+########################### GRUPO E INTEGRANTES ###############################
+
+# Data Buddies:
+#    -Eliseo Carriedo  (L.U.: /)
+#    -Lila Fage (L.U.: 235/24)
+#    -Julian Laurido (L.U.: / )
+
+############################### DESCRIPCION ###################################
+
+#
+#
+#
+
+#%% ===========================================================================
+########################## SECCION DE IMPORTS #################################
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from inline_sql import sql
+import random
 
 #%% ===========================================================================
-
-carpeta = './'
+########################### CARGA DE DATOS ####################################
+carpeta = '~/Desktop/workspace/guias-labdatos/archivosCSV/'
 data = pd.read_csv(carpeta+'TMNIST_Data.csv')
 
 #%% ANALISIS EXPLORATORIO =====================================================
