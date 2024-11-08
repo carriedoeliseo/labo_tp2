@@ -238,7 +238,6 @@ def exactitud_depth_tree_plot (exactitudes_tree):
     
     fig, ax = plt.subplots()
     ax.plot(exactitudes_tree['Profundidad'], exactitudes_tree['Precision'])
-    ax.set_title('Grafico de barras de precisiones')
     ax.set_xlabel('Profundidades')
     ax.set_ylabel('Precision del Arbol')
     ax.set_xticks(np.arange(1,11,1))
@@ -249,37 +248,79 @@ exactitud_depth_tree_plot(exactitudes_depth_tree)
 
 def exactitudes_hiperparametros (X_train, X_test, Y_train, Y_test):
     
-    exactitudes_tree = pd.DataFrame(columns=['Criterio', 'maxAtributos', 'Profundidad', 'minSamples','Precision'])
     maxAtributos = np.arange(2, 15, 3)
     profundidades = np.arange(1, 10, 2)
     minEjemplares = np.arange(2, 10, 2)
     
-    fig, axs = plt.subplots(ncols=3)
+    fig, axs = plt.subplots(ncols=3,figsize=(18,5))
     
-    exactitudes = pd.DataFrame(columns=['MaxFeatures', 'Precision'])
+    exactitudes_entr = pd.DataFrame(columns=['MaxFeatures', 'Precision'])
+    exactitudes_gini = pd.DataFrame(columns=['MaxFeatures', 'Precision'])
     
     for i in maxAtributos:
         
-        model_tree = DecisionTreeClassifier(criterion='entropy', max_features=i)
-        model_tree.fit(X_train, Y_train)
-        prediction_tree = model_tree.predict(X_test)
+        model_tree_entr = DecisionTreeClassifier(criterion='entropy', max_features=i)
+        model_tree_entr.fit(X_train, Y_train)
+        prediction_tree_entr = model_tree_entr.predict(X_test)
         
-        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree), 2)
-        exactitudes.loc[len(exactitudes_tree)] = [i, exactitud]
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_entr), 2)
+        exactitudes_entr.loc[len(exactitudes_entr)] = [i, exactitud]
         
-        axs[0].plot(exactitudes['MaxFeatures'], exactitudes['Precision'])
+        model_tree_gini = DecisionTreeClassifier(criterion='gini', max_features=i)
+        model_tree_gini.fit(X_train, Y_train)
+        prediction_tree_gini = model_tree_gini.predict(X_test)
         
-    for i in maxAtributos:
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_gini), 2)
+        exactitudes_gini.loc[len(exactitudes_gini)] = [i, exactitud]
         
-        model_tree = DecisionTreeClassifier(criterion='gini', max_features=i)
-        model_tree.fit(X_train, Y_train)
-        prediction_tree = model_tree.predict(X_test)
-        
-        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree), 2)
-        exactitudes.loc[len(exactitudes_tree)] = [i, exactitud]
-        
-        axs[0].plot(exactitudes['MaxFeatures'], exactitudes['Precision'])
+    axs[0].plot(exactitudes_entr['MaxFeatures'], exactitudes_entr['Precision'], color='green', linewidth=3, alpha=0.5)
+    axs[0].plot(exactitudes_gini['MaxFeatures'], exactitudes_gini['Precision'], color='red', linewidth=3, alpha=0.5)
     
+    exactitudes_entr = pd.DataFrame(columns=['Profundidad', 'Precision'])
+    exactitudes_gini = pd.DataFrame(columns=['Profundidad', 'Precision'])
     
+    for k in profundidades:
+        
+        model_tree_entr = DecisionTreeClassifier(criterion='entropy', max_depth=k)
+        model_tree_entr.fit(X_train, Y_train)
+        prediction_tree_entr = model_tree_entr.predict(X_test)
+        
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_entr), 2)
+        exactitudes_entr.loc[len(exactitudes_entr)] = [k, exactitud]
+        
+        model_tree_gini = DecisionTreeClassifier(criterion='gini', max_depth=k)
+        model_tree_gini.fit(X_train, Y_train)
+        prediction_tree_gini = model_tree_gini.predict(X_test)
+        
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_gini), 2)
+        exactitudes_gini.loc[len(exactitudes_gini)] = [k, exactitud]
+        
+    axs[1].plot(exactitudes_entr['Profundidad'], exactitudes_entr['Precision'], color='green', linewidth=3, alpha=0.5)
+    axs[1].plot(exactitudes_gini['Profundidad'], exactitudes_gini['Precision'], color='red', linewidth=3, alpha=0.5)
+    
+    exactitudes_entr = pd.DataFrame(columns=['minSamples', 'Precision'])
+    exactitudes_gini = pd.DataFrame(columns=['minSamples', 'Precision'])
+        
+    for l in minEjemplares:
+            
+        model_tree_entr = DecisionTreeClassifier(criterion='entropy', min_samples_split=l)
+        model_tree_entr.fit(X_train, Y_train)
+        prediction_tree_entr = model_tree_entr.predict(X_test)
+        
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_entr), 2)
+        exactitudes_entr.loc[len(exactitudes_entr)] = [l, exactitud]
+        
+        model_tree_gini = DecisionTreeClassifier(criterion='gini', min_samples_split=l)
+        model_tree_gini.fit(X_train, Y_train)
+        prediction_tree_gini = model_tree_gini.predict(X_test)
+        
+        exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_gini), 2)
+        exactitudes_gini.loc[len(exactitudes_gini)] = [l, exactitud]
+        
+    axs[2].plot(exactitudes_entr['minSamples'], exactitudes_entr['Precision'], color='green', linewidth=3, alpha=0.5)
+    axs[2].plot(exactitudes_gini['minSamples'], exactitudes_gini['Precision'], color='red', linewidth=3, alpha=0.5)
+    
+    plt.show()
     
 
+exactitudes_hiperparametros (X_train, X_test, Y_train, Y_test)
