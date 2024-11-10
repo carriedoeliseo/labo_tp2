@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker
 from inline_sql import sql
 from sklearn import metrics
+from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
@@ -35,6 +36,8 @@ from sklearn.model_selection import train_test_split
 ########################### CARGA DE DATOS ####################################
 carpeta = './'
 data = pd.read_csv(carpeta+'TMNIST_Data.csv')
+columnas_num = data.select_dtypes(include=[np.int64]).columns[1:]
+data[columnas_num] = data[columnas_num].astype(np.int32)
 
 #%% ANALISIS EXPLORATORIO =====================================================
 #&& a) ========================================================================
@@ -43,7 +46,6 @@ def std_data (data):
     std_data = np.std(data.iloc[:,2:], axis=0)
     img = np.array(std_data, dtype = float).reshape((28,28))
     plt.imshow(img, cmap='gray')
-    plt.show()
     return std_data
     
 no_importantes = std_data(data)[std_data(data) == 0].index
@@ -83,12 +85,16 @@ plot_std_1y3_3y8(data_1y3, data_3y8)
 #%% c) ========================================================================
                        
 def plot_clase_0 (data):
-    data_0 = data[data['labels'] == 0].iloc[:,2:]
-    datas = [np.mean(data_0, axis = 0), np.std(data_0, axis = 0)]
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(13,6))
-    for col in range (2):
-        img = np.array(datas[col]).reshape((28,28))
-        axs[col].imshow(img, cmap='gray')
+    nums = [0,1,4,7]
+    fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(13,6))
+    
+    for col in range (4):
+        data_col = data[data['labels'] == nums[col]].iloc[:,2:]
+        datas = [np.mean(data_col, axis = 0), np.std(data_col, axis = 0)]
+        
+        for row in range (2):
+            img = np.array(datas[row]).reshape((28,28))
+            axs[row][col].imshow(img, cmap='gray')
         
 # Variabilidad y promedio de la clase 0
 plot_clase_0 (data)
@@ -246,15 +252,13 @@ exactitud_depth_tree_plot(exactitudes_depth_tree)
 
 #%% c) ========================================================================
 
-
-
 def exactitudes_hiperparametros (X_train, X_test, Y_train, Y_test):
     
     maxAtributos = np.arange(2, 15, 3)
     profundidades = np.arange(1, 10, 2)
     minEjemplares = np.arange(2, 10, 2)
 
-    exactitudes = pd.DataFrame(columns=['Criterio', 'Hiperparametro', 'Iteracion', 'Exactitud'])
+    exactitudes = pd.DataFrame(columns=['Train/Test','Criterio', 'Hiperparametro', 'Iteracion', 'Exactitud'])
     hiperparametros = ['MaxFeatures', 'Profundidad', 'minSamples']
     
     for h in hiperparametros:
@@ -262,57 +266,207 @@ def exactitudes_hiperparametros (X_train, X_test, Y_train, Y_test):
         if h == 'MaxFeatures':
                 for i in maxAtributos:
                     
+                    # ------------------------ ENTROPY ------------------------
                     model_tree_entr = DecisionTreeClassifier(criterion='entropy', max_features=i)
                     model_tree_entr.fit(X_train, Y_train)
+                    
+                    # Accuracy con test
                     prediction_tree_entr = model_tree_entr.predict(X_test)
-                    
                     exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_entr), 2)
-                    exactitudes.loc[len(exactitudes)] = ['entropy', h, i, exactitud]
+                    exactitudes.loc[len(exactitudes)] = ['Test', 'entropy', h, i, exactitud]
                     
+                    # Accuracy con train
+                    prediction_tree_entr = model_tree_entr.predict(X_train)
+                    exactitud = round(metrics.accuracy_score(Y_train, prediction_tree_entr), 2)
+                    exactitudes.loc[len(exactitudes)] = ['Train', 'entropy', h, i, exactitud]
+                    
+                    # ------------------------- GINI --------------------------
                     model_tree_gini = DecisionTreeClassifier(criterion='gini', max_features=i)
                     model_tree_gini.fit(X_train, Y_train)
-                    prediction_tree_gini = model_tree_gini.predict(X_test)
                     
+                    # Accuracy con test
+                    prediction_tree_gini = model_tree_gini.predict(X_test)
                     exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_gini), 2)
-                    exactitudes.loc[len(exactitudes)] = ['gini', h, i, exactitud]
+                    exactitudes.loc[len(exactitudes)] = ['Test', 'gini', h, i, exactitud]
+                    
+                    # Accuracy con train
+                    prediction_tree_gini = model_tree_gini.predict(X_train)
+                    exactitud = round(metrics.accuracy_score(Y_train, prediction_tree_gini), 2)
+                    exactitudes.loc[len(exactitudes)] = ['Train', 'gini', h, i, exactitud]
                     
         elif h == 'Profundidad':
                 for k in profundidades:
                     
+                    # ------------------------ ENTROPY ------------------------
                     model_tree_entr = DecisionTreeClassifier(criterion='entropy', max_depth=k)
                     model_tree_entr.fit(X_train, Y_train)
+                    
+                    # Accuracy con test
                     prediction_tree_entr = model_tree_entr.predict(X_test)
-                    
                     exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_entr), 2)
-                    exactitudes.loc[len(exactitudes)] = ['entropy', h, k, exactitud]
+                    exactitudes.loc[len(exactitudes)] = ['Test', 'entropy', h, k, exactitud]
                     
+                    # Accuracy con train
+                    prediction_tree_entr = model_tree_entr.predict(X_train)
+                    exactitud = round(metrics.accuracy_score(Y_train, prediction_tree_entr), 2)
+                    exactitudes.loc[len(exactitudes)] = ['Train', 'entropy', h, k, exactitud]
+                    
+                    # ------------------------- GINI --------------------------
                     model_tree_gini = DecisionTreeClassifier(criterion='gini', max_depth=k)
                     model_tree_gini.fit(X_train, Y_train)
-                    prediction_tree_gini = model_tree_gini.predict(X_test)
                     
+                    # Accuracy con test
+                    prediction_tree_gini = model_tree_gini.predict(X_test)
                     exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_gini), 2)
-                    exactitudes.loc[len(exactitudes)] = ['gini', h, k, exactitud]
+                    exactitudes.loc[len(exactitudes)] = ['Test', 'gini', h, k, exactitud]
+                    
+                    # Accuracy con train
+                    prediction_tree_gini = model_tree_gini.predict(X_train)
+                    exactitud = round(metrics.accuracy_score(Y_train, prediction_tree_gini), 2)
+                    exactitudes.loc[len(exactitudes)] = ['Train', 'gini', h, k, exactitud]
                     
         elif h == 'minSamples':  
                 for l in minEjemplares:
-                        
+                    
+                    # ------------------------ ENTROPY ------------------------
                     model_tree_entr = DecisionTreeClassifier(criterion='entropy', min_samples_split=l)
                     model_tree_entr.fit(X_train, Y_train)
+                    
+                    # Accuracy con test
                     prediction_tree_entr = model_tree_entr.predict(X_test)
-                    
                     exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_entr), 2)
-                    exactitudes.loc[len(exactitudes)] = ['entropy', h, l, exactitud]
+                    exactitudes.loc[len(exactitudes)] = ['Test', 'entropy', h, l, exactitud]
                     
+                    # Accuracy con train
+                    prediction_tree_entr = model_tree_entr.predict(X_train)
+                    exactitud = round(metrics.accuracy_score(Y_train, prediction_tree_entr), 2)
+                    exactitudes.loc[len(exactitudes)] = ['Train', 'entropy', h, l, exactitud]
+                    
+                    # ------------------------- GINI --------------------------
                     model_tree_gini = DecisionTreeClassifier(criterion='gini', min_samples_split=l)
                     model_tree_gini.fit(X_train, Y_train)
-                    prediction_tree_gini = model_tree_gini.predict(X_test)
                     
+                    # Accuracy con test
+                    prediction_tree_gini = model_tree_gini.predict(X_test)
                     exactitud = round(metrics.accuracy_score(Y_test, prediction_tree_gini), 2)
-                    exactitudes.loc[len(exactitudes)] = ['gini', h, l, exactitud]
+                    exactitudes.loc[len(exactitudes)] = ['Test', 'gini', h, l, exactitud]
+                    
+                    # Accuracy con train
+                    prediction_tree_gini = model_tree_gini.predict(X_train)
+                    exactitud = round(metrics.accuracy_score(Y_train, prediction_tree_gini), 2)
+                    exactitudes.loc[len(exactitudes)] = ['Train', 'gini', h, l, exactitud]
                     
     return exactitudes
+
+def k_folding (nsplits, X_dev, Y_dev):
     
-exactitudes_hiperparametros (X_train, X_test, Y_train, Y_test)
+    resultados = pd.DataFrame(columns=['Fold', 'Train/Test', 'Criterio', 'Hiperparametro', 'Iteracion', 'Exactitud'])
+    
+    kf = KFold(n_splits=nsplits)
+    for i, (train_index, test_index) in enumerate(kf.split(X_dev)):
+    
+        kf_X_train, kf_X_test = X_dev.iloc[train_index], X_dev.iloc[test_index]
+        kf_Y_train, kf_Y_test = Y_dev.iloc[train_index], Y_dev.iloc[test_index]
+        
+        exactitudes_fold = exactitudes_hiperparametros(kf_X_train, kf_X_test, kf_Y_train, kf_Y_test)
+        exactitudes_fold['Fold'] = i
+        resultados = pd.concat([resultados, exactitudes_fold], axis=0)
+        
+    return resultados
 
+exactitudes_foldings = k_folding (5, X_dev, Y_dev)
 
+#%%
+
+exactitudes_promedios_train = sql^ """
+                             SELECT Criterio, 
+                                    Hiperparametro, 
+                                    Iteracion, 
+                                    AVG (Exactitud) AS AVG_Exactitud_Train
+                             FROM exactitudes_foldings AS ef
+                             WHERE ef."Train/Test" = 'Train'
+                             GROUP BY Criterio, 
+                                      Hiperparametro, 
+                                      Iteracion
+                             ORDER BY Hiperparametro, Iteracion, Criterio
+                             """
+                             
+exactitudes_promedios_test = sql^ """
+                             SELECT Criterio, 
+                                    Hiperparametro, 
+                                    Iteracion, 
+                                    AVG (Exactitud) AS AVG_Exactitud_Test
+                             FROM exactitudes_foldings AS ef
+                             WHERE ef."Train/Test" = 'Test'
+                             GROUP BY Criterio, 
+                                      Hiperparametro, 
+                                      Iteracion
+                             ORDER BY Hiperparametro, Iteracion, Criterio
+                             """
+                             
+def plot_hiperparametros (exactitudes_promedios_train, exactitudes_promedios_test):
+    
+    hiperparametros = ['MaxFeatures', 'Profundidad', 'minSamples']
+    fig, ax = plt.subplots(ncols=1, nrows=3, figsize=(8,10))
+    i = 0
+    for h in hiperparametros:
+        
+         exactitudes_entr_train = sql^ """
+                                       SELECT Iteracion, AVG_Exactitud_Train
+                                       FROM exactitudes_promedios_train
+                                       WHERE Criterio = 'entropy' AND
+                                             Hiperparametro = $h
+                                       """
+         exactitudes_gini_train = sql^ """
+                                       SELECT Iteracion, AVG_Exactitud_Train
+                                       FROM exactitudes_promedios_train
+                                       WHERE Criterio = 'gini' AND
+                                             Hiperparametro = $h
+                                       """
+                                       
+         exactitudes_entr_test = sql^ """
+                                       SELECT Iteracion, AVG_Exactitud_Test
+                                       FROM exactitudes_promedios_test
+                                       WHERE Criterio = 'entropy' AND
+                                             Hiperparametro = $h
+                                       """
+         exactitudes_gini_test = sql^ """
+                                       SELECT Iteracion, AVG_Exactitud_Test
+                                       FROM exactitudes_promedios_test
+                                       WHERE Criterio = 'gini' AND
+                                             Hiperparametro = $h
+                                       """
+                                 
+         ax[i].plot(exactitudes_entr_train['Iteracion'], 
+                    exactitudes_entr_train['AVG_Exactitud_Train'],
+                    linestyle='--', 
+                    color='green',
+                    alpha = 0.5)
+         
+         ax[i].plot(exactitudes_gini_train['Iteracion'], 
+                    exactitudes_gini_train['AVG_Exactitud_Train'],
+                    'o-',
+                    linestyle='--', 
+                    color='red',
+                    alpha = 0.5)
+         
+         ax[i].plot(exactitudes_entr_test['Iteracion'], 
+                    exactitudes_entr_test['AVG_Exactitud_Test'],
+                    'o-',
+                    linestyle='-', 
+                    color='green',
+                    alpha = 0.5)
+         
+         ax[i].plot(exactitudes_gini_test['Iteracion'], 
+                    exactitudes_gini_test['AVG_Exactitud_Test'],
+                    'o-',
+                    linestyle='-', 
+                    color='red',
+                    alpha = 0.5)
+         
+         i+=1
+         
+    plt.show()
+    
+plot_hiperparametros (exactitudes_promedios_train, exactitudes_promedios_test)
 
