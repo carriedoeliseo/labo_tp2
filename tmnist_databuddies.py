@@ -227,7 +227,7 @@ exactitudes = dataExactitudes(n_atributos, k_vecinos, X_train, X_test, Y_train, 
 
 def exactitudes_plot (exactitudes):
     
-    fig, ax = plt.subplots(figsize=(10,10))
+    fig, ax = plt.subplots(figsize=(14,11))
     
     scatter = ax.scatter(exactitudes['num_vecinos'],
                          exactitudes['num_atributos'],
